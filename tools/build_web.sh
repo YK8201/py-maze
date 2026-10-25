@@ -9,11 +9,12 @@ pyxel package ../game ../game/main.py
 pyxel app2html game.pyxapp
 cd ..
 {
-  echo '<!doctype html>'
-  echo '<html lang="ja"><head><meta charset="utf-8"><title>PY-MAZE</title>'
-  echo '<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">'
-  echo '</head><body style="background:#000">'
-  tail -n +2 build/game.html | sed "s/gamepad: \"enabled\"/gamepad: \"disabled\"/"
+  cat tools/web_head.html
+  # 仮想ゲームパッドは画面下のボタンと重なるので無効にする。
+  # crossorigin を付けると pyxel.js 内のエラーの中身がブラウザに見えるようになる。
+  tail -n +2 build/game.html \
+    | sed -e "s/gamepad: \"enabled\"/gamepad: \"disabled\"/" \
+          -e "s#<script src=\"\([^\"]*pyxel.js\)\">#<script src=\"\\1\" crossorigin=\"anonymous\">#"
   echo '</body></html>'
 } > docs/index.html
 rm -rf build

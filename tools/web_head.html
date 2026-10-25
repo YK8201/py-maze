@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>PY-MAZE</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<style>
+  body { background: #000; }
+  /* エラー表示が出てもタッチを横取りしないようにする */
+  #pyxel-error-overlay { pointer-events: none !important; }
+</style>
+<script>
+  // Pyxel Web はページ上のあらゆるエラーで全画面のエラー表示を出す。
+  // 別オリジンのスクリプト（ブラウザ拡張・アプリ内ブラウザの注入スクリプトなど）の
+  // エラーは中身が "Script error." としか見えず、ゲームとは無関係なことが多いので握りつぶす。
+  // pyxel.js より先に登録して、Pyxel のハンドラに届かないようにする。
+  window.addEventListener("error", (e) => {
+    if (!e.error && (!e.message || e.message === "Script error.")) {
+      console.warn("ignored opaque script error", e);
+      e.stopImmediatePropagation();
+    }
+  }, true);
+</script>
+</head>
+<body>
