@@ -26,12 +26,13 @@ BUTTONS_CLEAR = [("RETRY", 20, 118, 40, 16), ("NEXT", 68, 118, 40, 16)]
 
 HINTS = {
     0: "SWIPE: SLIDE UNTIL A WALL",
-    1: "GET ALL DOTS TO OPEN THE GOAL",
+    1: "GET EVERY DOT, THEN THE GOAL",
     6: "MUD STOPS YOU ON IT",
     11: "CRACKED FLOOR BREAKS BEHIND YOU",
 }
 
-SAVE_KEY = "py-maze-save"
+SAVE_KEY = "py-maze-save-v2"  # 全マスドット版。旧ステージの記録とは分ける
+SAVE_FILE = "save-v2.json"
 
 
 # ---------------------------------------------------------------- 保存
@@ -44,7 +45,7 @@ def load_save():
     except Exception:
         pass
     try:
-        with open(os.path.join(pyxel.user_data_dir("yk8201", "py-maze"), "save.json")) as f:
+        with open(os.path.join(pyxel.user_data_dir("yk8201", "py-maze"), SAVE_FILE)) as f:
             return json.load(f)
     except Exception:
         return {}
@@ -60,7 +61,7 @@ def write_save(data):
     except Exception:
         pass
     try:
-        with open(os.path.join(pyxel.user_data_dir("yk8201", "py-maze"), "save.json"), "w") as f:
+        with open(os.path.join(pyxel.user_data_dir("yk8201", "py-maze"), SAVE_FILE), "w") as f:
             f.write(s)
     except Exception:
         pass

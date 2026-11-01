@@ -4,7 +4,7 @@ TILE = 8  # 1マスの大きさ（ドット）
 
 MAP = [
     "#######",
-    "#S   .#",
+    "#S    #",
     "##### #",
     "#E    #",
     "#######",
@@ -35,8 +35,6 @@ class App:
                 py = self.oy + y * TILE
                 if tile == "#":
                     pyxel.rect(px, py, TILE, TILE, 1)
-                elif tile == ".":
-                    pyxel.rect(px + 3, py + 3, 2, 2, 10)
                 elif tile == "E":
                     pyxel.rectb(px + 1, py + 1, 6, 6, 11)
 

@@ -2,17 +2,16 @@
 
 タイル:
     #  壁
-    .  ドット（全部集めるとゴールが開く）
+    ' ' 床（すべてドットが置かれる。全部集めるとゴールが開く）
     E  ゴール
-    S  スタート
-    o  ぬかるみ（上を通ると止まる）
-    x  崩れる床（一度離れると壁になる）
-    ' ' 床
+    S  スタート（ドットなし）
+    o  ぬかるみ（上を通ると止まる。ドットなし）
+    x  崩れる床（一度離れると壁になる。ドットなし）
 """
 
 WALL = "#"
 FLOOR = " "
-DOT = "."
+DOT = "."  # 読み込み時に床はすべてドットになる
 EXIT = "E"
 START = "S"
 MUD = "o"
@@ -33,8 +32,9 @@ class Level:
         self.exit = None
         for y, row in enumerate(self.grid):
             for x, c in enumerate(row):
-                if c == DOT:
+                if c in (FLOOR, DOT):
                     self.dots.append((x, y))
+                    row[x] = DOT
                 elif c == CRUMBLE:
                     self.crumbles.append((x, y))
                 elif c == START:

@@ -4,11 +4,11 @@ TILE = 8
 
 MAP = [
     "#######",
-    "#.   S#",
+    "#    S#",
     "# #####",
     "# #E  #",
     "# ### #",
-    "#    .#",
+    "#     #",
     "#######",
 ]
 
@@ -31,7 +31,9 @@ class App:
                 if self.grid[y][x] == "S":
                     self.x = x
                     self.y = y
-                    self.grid[y][x] = " "
+                    self.grid[y][x] = " "  # 立っているマスは拾ったことにする
+                elif self.grid[y][x] == " ":
+                    self.grid[y][x] = "."  # 空白のマスには全部ドットを置く
         self.moves = 0  # 手数
         self.clear = False
 
