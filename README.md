@@ -45,6 +45,10 @@ GitHub の無料プランでは、Pages を使うにはリポジトリを公開�
 ./tools/build_web.sh
 ```
 
+## 自分で作ってみたい人へ
+
+[`tutorial/`](tutorial/README.md) に、このゲームを Python を少し書いたことがある中学生が1章ずつ自分の手で作っていくためのテキストがあります（全14章＋付録、各章の完成コード付き）。
+
 ## ファイル構成
 
 - `game/main.py` … ゲーム本体（画面・入力・描画）
@@ -53,6 +57,7 @@ GitHub の無料プランでは、Pages を使うにはリポジトリを公開�
 - `game/solver.py` … 最短手数を求めるソルバー。`python game/solver.py` で全ステージの PAR を検証
 - `tools/gen_levels.py` … ステージ候補の自動生成ツール
 - `tools/build_web.sh` … Web 版のビルド
+- `tutorial/` … 自分で作るためのテキストと、各章の完成コード
 
 ### ステージを増やす
 
