@@ -14,7 +14,7 @@ def solve(level, limit=2_000_000):
         s = queue.popleft()
         for d in DIRS:
             r = step(level, s, d)
-            if r is None:
+            if r is None or r[2]:  # 動けない手と、水に落ちる手は使わない
                 continue
             ns = r[0]
             k = ns.key()
