@@ -1,22 +1,22 @@
-"""迷路のルール（ゲーム本体とソルバーで共有する）
+"""氷の湖のルール（ゲーム本体とソルバーで共有する）
+
+『レイトン教授と超文明Aの遺産』のナゾ「氷の湖」を参考にしたルール。
 
 タイル:
-    #  壁
-    .  ドット（全部集めるとゴールが開く）
-    E  ゴール
-    S  スタート
-    o  ぬかるみ（上を通ると止まる）
-    x  崩れる床（一度離れると壁になる）
-    ' ' 床
+    #   岩・岸（ぶつかると手前で止まる）
+    ' ' 氷（止まらずに滑り続ける）
+    x   もろい氷（乗っても通ってもよいが、離れると割れて水になる）
+    ~   水（入ると落ちる。その手は失敗）
+    S   スタート
+    E   町（ゴール）。着いたらクリア
 """
 
-WALL = "#"
-FLOOR = " "
-DOT = "."
-EXIT = "E"
+ROCK = "#"
+ICE = " "
+THIN = "x"
+WATER = "~"
 START = "S"
-MUD = "o"
-CRUMBLE = "x"
+EXIT = "E"
 
 UP, DOWN, LEFT, RIGHT = 0, 1, 2, 3
 DIRS = {UP: (0, -1), DOWN: (0, 1), LEFT: (-1, 0), RIGHT: (1, 0)}
@@ -26,93 +26,82 @@ class Level:
     def __init__(self, rows):
         self.h = len(rows)
         self.w = max(len(r) for r in rows)
-        self.grid = [list(r.ljust(self.w, WALL)) for r in rows]
-        self.dots = []
-        self.crumbles = []
+        self.grid = [list(r.ljust(self.w, ROCK)) for r in rows]
+        self.thins = []
         self.start = None
         self.exit = None
         for y, row in enumerate(self.grid):
             for x, c in enumerate(row):
-                if c == DOT:
-                    self.dots.append((x, y))
-                elif c == CRUMBLE:
-                    self.crumbles.append((x, y))
+                if c == THIN:
+                    self.thins.append((x, y))
                 elif c == START:
                     self.start = (x, y)
-                    row[x] = FLOOR
+                    row[x] = ICE
                 elif c == EXIT:
                     self.exit = (x, y)
         if self.start is None or self.exit is None:
             raise ValueError("level needs S and E")
-        self.dot_index = {p: i for i, p in enumerate(self.dots)}
-        self.crumble_index = {p: i for i, p in enumerate(self.crumbles)}
+        self.thin_index = {p: i for i, p in enumerate(self.thins)}
 
     def tile(self, x, y):
         if 0 <= x < self.w and 0 <= y < self.h:
             return self.grid[y][x]
-        return WALL
+        return ROCK
 
     def initial_state(self):
-        return State(
-            self.start, (1 << len(self.dots)) - 1, (1 << len(self.crumbles)) - 1
-        )
+        return State(self.start, (1 << len(self.thins)) - 1)
 
-    def is_blocked(self, x, y, crumble_mask):
+    def tile_now(self, x, y, thin_mask):
+        """割れたもろい氷を水として返す"""
         t = self.tile(x, y)
-        if t == WALL:
-            return True
-        if t == CRUMBLE:
-            return not (crumble_mask >> self.crumble_index[(x, y)]) & 1
-        return False
+        if t == THIN and not (thin_mask >> self.thin_index[(x, y)]) & 1:
+            return WATER
+        return t
 
 
 class State:
-    """pos: プレイヤー位置, dots: 残りドットのビット, crumbles: 残っている崩れる床のビット"""
+    """pos: プレイヤー位置, thins: まだ割れていないもろい氷のビット"""
 
-    __slots__ = ("pos", "dots", "crumbles", "won")
+    __slots__ = ("pos", "thins", "won")
 
-    def __init__(self, pos, dots, crumbles, won=False):
+    def __init__(self, pos, thins, won=False):
         self.pos = pos
-        self.dots = dots
-        self.crumbles = crumbles
+        self.thins = thins
         self.won = won
 
     def key(self):
-        return (self.pos, self.dots, self.crumbles)
+        return (self.pos, self.thins)
 
 
 def step(level, state, d):
-    """方向 d に滑らせる。動けなければ None。
-    戻り値: (新しい State, 通過したマスのリスト[始点含む], 拾ったドット位置のリスト)"""
+    """方向 d に滑らせる。
+    岩が目の前にあって動けなければ None。
+    戻り値: (新しい State, 通過したマスのリスト[始点含む], 水に落ちたか)
+    落ちたときの State は落ちる直前のようすで、ゲームではこの手を取り消す"""
     dx, dy = DIRS[d]
     x, y = state.pos
-    dots = state.dots
-    crumbles = state.crumbles
     path = [(x, y)]
-    picked = []
     won = False
+    fell = False
     while True:
         nx, ny = x + dx, y + dy
-        if level.is_blocked(nx, ny, state.crumbles):
+        t = level.tile_now(nx, ny, state.thins)
+        if t == ROCK:
             break
         x, y = nx, ny
         path.append((x, y))
-        t = level.tile(x, y)
-        if t == DOT:
-            bit = 1 << level.dot_index[(x, y)]
-            if dots & bit:
-                dots &= ~bit
-                picked.append((x, y))
-        if t == EXIT and dots == 0:
-            won = True
+        if t == WATER:
+            fell = True
             break
-        if t == MUD:
+        if t == EXIT:
+            won = True
             break
     if len(path) == 1:
         return None
-    # 離れたマスの崩れる床は壁になる（止まったマスはまだ残る）
+    # 離れたもろい氷は割れて水になる（止まったマスはまだ割れない）
+    thins = state.thins
     for p in path[:-1]:
-        i = level.crumble_index.get(p)
+        i = level.thin_index.get(p)
         if i is not None:
-            crumbles &= ~(1 << i)
-    return State((x, y), dots, crumbles, won), path, picked
+            thins &= ~(1 << i)
+    return State((x, y), thins, won), path, fell

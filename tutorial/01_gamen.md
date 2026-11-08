@@ -14,7 +14,7 @@ import pyxel
 
 class App:
     def __init__(self):
-        pyxel.init(128, 160, title="SLIDE MAZE")
+        pyxel.init(128, 160, title="ICE LAKE")
         pyxel.run(self.update, self.draw)
 
     def update(self):
@@ -22,14 +22,14 @@ class App:
 
     def draw(self):
         pyxel.cls(0)
-        pyxel.text(44, 60, "HELLO MAZE", 7)
+        pyxel.text(44, 60, "HELLO LAKE", 7)
         pyxel.rect(60, 80, 8, 8, 9)
 
 
 App()
 ```
 
-ウィンドウが開いて「HELLO MAZE」と四角が出れば成功です。
+ウィンドウが開いて「HELLO LAKE」と四角が出れば成功です。
 
 ## Pyxel のプログラムの形
 
@@ -41,7 +41,7 @@ Pyxel のゲームは、だいたいこの形をしています。上から順�
 
 **`__init__`** は、`App()` と書いたときに1回だけ動く準備用のメソッドです。いちばん下の行の `App()` が、ゲームを始める合図になっています。
 
-**`pyxel.init(128, 160, title="SLIDE MAZE")`** で、横128・縦160ドットの画面を作ります。パソコンの画面では小さすぎるので、Pyxel が自動で拡大して表示します。ドット絵のゲームはこのくらいの大きさで作るのが普通です。
+**`pyxel.init(128, 160, title="ICE LAKE")`** で、横128・縦160ドットの画面を作ります。パソコンの画面では小さすぎるので、Pyxel が自動で拡大して表示します。ドット絵のゲームはこのくらいの大きさで作るのが普通です。
 
 **`pyxel.run(self.update, self.draw)`** がいちばん大事な行です。これを実行すると、Pyxel は
 
@@ -68,7 +68,7 @@ Pyxel のゲームは、だいたいこの形をしています。上から順�
 `draw` で使った命令は次の3つです。
 
 - `pyxel.cls(0)`：画面全体を色0（黒）で塗りつぶす。毎フレーム最初に呼んで、前の絵を消す
-- `pyxel.text(44, 60, "HELLO MAZE", 7)`：(44, 60) に文字を書く。色は7（白）
+- `pyxel.text(44, 60, "HELLO LAKE", 7)`：(44, 60) に文字を書く。色は7（白）
 - `pyxel.rect(60, 80, 8, 8, 9)`：(60, 80) を左上にして、幅8・高さ8の四角を塗る。色は9（オレンジ）
 
 色は0〜15の番号で指定します。どの番号が何色かは [付録の色番号表](appendix.md#色番号表) にあります。Pyxel に最初から入っている文字は英数字だけで、日本語は表示できません。この教材のゲームでも、画面の文字は英語にしています。
@@ -79,7 +79,7 @@ Pyxel のゲームは、だいたいこの形をしています。上から順�
 
 ```python
     def __init__(self):
-        pyxel.init(128, 160, title="SLIDE MAZE")
+        pyxel.init(128, 160, title="ICE LAKE")
         self.x = 60
         pyxel.run(self.update, self.draw)
 
@@ -88,7 +88,7 @@ Pyxel のゲームは、だいたいこの形をしています。上から順�
 
     def draw(self):
         pyxel.cls(0)
-        pyxel.text(44, 60, "HELLO MAZE", 7)
+        pyxel.text(44, 60, "HELLO LAKE", 7)
         pyxel.rect(self.x, 80, 8, 8, 9)
 ```
 

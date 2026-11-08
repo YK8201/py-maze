@@ -94,6 +94,8 @@ x がボタンの左端から右端までのあいだにあり、y が上端か�
 ```python
     def update(self):
         self.update_touch()
+        if self.splash > 0:
+            self.splash -= 1
         if self.moving:
             self.update_move()
             return  # 滑っているあいだはキーを受けつけない
@@ -163,4 +165,4 @@ GitHub の無料プランでは、Pages を使えるのは Public（だれでも
 
 `<style>` の部分は、エラーの表示が出てもタッチをゲームに通す設定です。`<script>` の部分は、中身がわからない「Script error.」だけを、Pyxel に届く前に止めます。ゲーム自体のエラーはこれまでどおり表示されます。
 
-これで、パソコンでもスマホでも遊べるスライド迷路パズルの完成です。
+これで、パソコンでもスマホでも遊べる氷の湖パズルの完成です。

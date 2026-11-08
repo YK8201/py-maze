@@ -4,18 +4,19 @@ TILE = 8
 
 MAP = [
     "#######",
-    "#.   S#",
-    "# #####",
-    "# #E  #",
-    "# ### #",
-    "#    .#",
-    "#######",
+    "#     #",
+    "##~ # #",
+    "#    ~#",
+    "#     #",
+    "#     E",
+    "####S##",
 ]
 
 
 class App:
     def __init__(self):
-        pyxel.init(128, 160, title="SLIDE MAZE")
+        pyxel.init(128, 160, title="ICE LAKE")
+        self.splash = 0
         self.load_level()
         pyxel.run(self.update, self.draw)
 
@@ -35,32 +36,35 @@ class App:
         self.moves = 0  # 手数
         self.clear = False
 
-    def is_wall(self, x, y):
+    def is_rock(self, x, y):
+        if x < 0 or x >= self.w or y < 0 or y >= self.h:
+            return True
         return self.grid[y][x] == "#"
-
-    def count_dots(self):
-        n = 0
-        for row in self.grid:
-            n += row.count(".")
-        return n
 
     def move(self, dx, dy):
         if self.clear:
             return
-        if self.is_wall(self.x + dx, self.y + dy):
+        if self.is_rock(self.x + dx, self.y + dy):
             return  # 1マスも動けないときは手数にかぞえない
-        self.moves += 1
-        while not self.is_wall(self.x + dx, self.y + dy):
+        start_x = self.x
+        start_y = self.y
+        while not self.is_rock(self.x + dx, self.y + dy):
             self.x += dx
             self.y += dy
             tile = self.grid[self.y][self.x]
-            if tile == ".":
-                self.grid[self.y][self.x] = " "
-            if tile == "E" and self.count_dots() == 0:
+            if tile == "~":
+                self.x = start_x
+                self.y = start_y
+                self.splash = 30
+                return  # 落ちた手も手数にかぞえない
+            if tile == "E":
                 self.clear = True
                 break
+        self.moves += 1
 
     def update(self):
+        if self.splash > 0:
+            self.splash -= 1
         if pyxel.btnp(pyxel.KEY_UP):
             self.move(0, -1)
         if pyxel.btnp(pyxel.KEY_DOWN):
@@ -80,20 +84,20 @@ class App:
                 px = self.ox + x * TILE
                 py = self.oy + y * TILE
                 if tile == "#":
-                    pyxel.rect(px, py, TILE, TILE, 1)
-                elif tile == ".":
-                    pyxel.rect(px + 3, py + 3, 2, 2, 10)
+                    pyxel.rect(px, py, TILE, TILE, 13)
                 elif tile == "E":
-                    if self.count_dots() == 0:
-                        pyxel.rect(px + 1, py + 1, 6, 6, 11)
-                    else:
-                        pyxel.rectb(px + 1, py + 1, 6, 6, 5)
+                    pyxel.rect(px, py, TILE, TILE, 8)
+                elif tile == "~":
+                    pyxel.rect(px, py, TILE, TILE, 5)
+                else:
+                    pyxel.rect(px, py, TILE, TILE, 6)
         px = self.ox + self.x * TILE
         py = self.oy + self.y * TILE
         pyxel.rect(px + 1, py + 1, 6, 6, 9)
 
         pyxel.text(4, 4, f"MOVES {self.moves}", 7)
-        pyxel.text(80, 4, f"DOTS {self.count_dots()}", 7)
+        if self.splash > 0:
+            pyxel.text(50, 4, "SPLASH!", 12)
         pyxel.text(4, 148, "ARROWS:MOVE  R:RESET", 13)
         if self.clear:
             pyxel.rect(24, 64, 80, 24, 1)
