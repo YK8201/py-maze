@@ -4,16 +4,18 @@ TILE = 8
 
 MAP = [
     "#######",
-    "#S    #",
-    "##### #",
-    "#E    #",
-    "#######",
+    "# ##  #",
+    "#     #",
+    "#   # #",
+    "#     #",
+    "#     E",
+    "###S###",
 ]
 
 
 class App:
     def __init__(self):
-        pyxel.init(128, 160, title="SLIDE MAZE")
+        pyxel.init(128, 160, title="ICE LAKE")
         self.grid = [list(row) for row in MAP]
         self.h = len(self.grid)
         self.w = len(self.grid[0])
@@ -25,15 +27,18 @@ class App:
                 if self.grid[y][x] == "S":
                     self.x = x
                     self.y = y
-                    self.grid[y][x] = " "  # S はもう要らないので床にする
+                    self.grid[y][x] = " "  # S はもう要らないので氷にする
         pyxel.run(self.update, self.draw)
 
-    def is_wall(self, x, y):
+    def is_rock(self, x, y):
+        # 湖の外は岩ということにする
+        if x < 0 or x >= self.w or y < 0 or y >= self.h:
+            return True
         return self.grid[y][x] == "#"
 
     def move(self, dx, dy):
-        # となりが壁でなければ1マス進む
-        if not self.is_wall(self.x + dx, self.y + dy):
+        # となりが岩でなければ1マス進む
+        if not self.is_rock(self.x + dx, self.y + dy):
             self.x += dx
             self.y += dy
 
@@ -55,9 +60,11 @@ class App:
                 px = self.ox + x * TILE
                 py = self.oy + y * TILE
                 if tile == "#":
-                    pyxel.rect(px, py, TILE, TILE, 1)
+                    pyxel.rect(px, py, TILE, TILE, 13)
                 elif tile == "E":
-                    pyxel.rectb(px + 1, py + 1, 6, 6, 11)
+                    pyxel.rect(px, py, TILE, TILE, 8)
+                else:
+                    pyxel.rect(px, py, TILE, TILE, 6)
         # プレイヤー（オレンジの四角）
         px = self.ox + self.x * TILE
         py = self.oy + self.y * TILE

@@ -7,7 +7,8 @@ TILE = 8
 
 class App:
     def __init__(self):
-        pyxel.init(128, 160, title="SLIDE MAZE")
+        pyxel.init(128, 160, title="ICE LAKE")
+        self.splash = 0
         self.stage = 0  # 今のステージ番号（0 から数える）
         self.load_level()
         pyxel.run(self.update, self.draw)
@@ -24,44 +25,41 @@ class App:
                 if self.grid[y][x] == "S":
                     self.x = x
                     self.y = y
-                    self.grid[y][x] = " "  # 立っているマスは拾ったことにする
-                elif self.grid[y][x] == " ":
-                    self.grid[y][x] = "."  # 空白のマスには全部ドットを置く
-        self.moves = 0
+                    self.grid[y][x] = " "
+        self.moves = 0  # 手数
         self.clear = False
-        self.history = []
+        self.history = []  # 1手ごとの記録（UNDO用）
 
-    def is_wall(self, x, y):
+    def is_rock(self, x, y):
+        if x < 0 or x >= self.w or y < 0 or y >= self.h:
+            return True
         return self.grid[y][x] == "#"
-
-    def count_dots(self):
-        n = 0
-        for row in self.grid:
-            n += row.count(".")
-        return n
 
     def move(self, dx, dy):
         if self.clear:
             return
-        if self.is_wall(self.x + dx, self.y + dy):
-            return
+        if self.is_rock(self.x + dx, self.y + dy):
+            return  # 1マスも動けないときは手数にかぞえない
+        # 動く前のようすを記録しておく（湖はコピーしてから）
         grid_copy = [row[:] for row in self.grid]
         self.history.append((grid_copy, self.x, self.y, self.moves))
         self.moves += 1
-        while not self.is_wall(self.x + dx, self.y + dy):
+        while not self.is_rock(self.x + dx, self.y + dy):
             self.x += dx
             self.y += dy
             tile = self.grid[self.y][self.x]
-            if tile == ".":
-                self.grid[self.y][self.x] = " "
-            if tile == "E" and self.count_dots() == 0:
+            if tile == "~":
+                self.undo()  # 落ちたら、この手をなかったことにする
+                self.splash = 30
+                return
+            if tile == "E":
                 self.clear = True
                 break
 
     def undo(self):
         if len(self.history) == 0:
             return
-        grid, x, y, moves = self.history.pop()
+        grid, x, y, moves = self.history.pop()  # 最後の記録を取り出す
         self.grid = grid
         self.x = x
         self.y = y
@@ -74,6 +72,8 @@ class App:
             self.load_level()
 
     def update(self):
+        if self.splash > 0:
+            self.splash -= 1
         if self.clear and pyxel.btnp(pyxel.KEY_RETURN):
             self.next_stage()
         if pyxel.btnp(pyxel.KEY_UP):
@@ -97,14 +97,13 @@ class App:
                 px = self.ox + x * TILE
                 py = self.oy + y * TILE
                 if tile == "#":
-                    pyxel.rect(px, py, TILE, TILE, 1)
-                elif tile == ".":
-                    pyxel.rect(px + 3, py + 3, 2, 2, 10)
+                    pyxel.rect(px, py, TILE, TILE, 13)
                 elif tile == "E":
-                    if self.count_dots() == 0:
-                        pyxel.rect(px + 1, py + 1, 6, 6, 11)
-                    else:
-                        pyxel.rectb(px + 1, py + 1, 6, 6, 5)
+                    pyxel.rect(px, py, TILE, TILE, 8)
+                elif tile == "~":
+                    pyxel.rect(px, py, TILE, TILE, 5)
+                else:
+                    pyxel.rect(px, py, TILE, TILE, 6)
         px = self.ox + self.x * TILE
         py = self.oy + self.y * TILE
         pyxel.rect(px + 1, py + 1, 6, 6, 9)
@@ -114,7 +113,8 @@ class App:
         pyxel.text(4, 2, f"STAGE {self.stage + 1} {level['name']}", 7)
         pyxel.text(4, 9, f"MOVES {self.moves}", 7)
         pyxel.text(52, 9, f"PAR {level['par']}", 10)
-        pyxel.text(92, 9, f"DOTS {self.count_dots()}", 7)
+        if self.splash > 0:
+            pyxel.text(92, 9, "SPLASH!", 12)
         pyxel.text(4, 148, "ARROWS:MOVE Z:UNDO R:RESET", 13)
         if self.clear:
             pyxel.rect(16, 60, 96, 36, 1)

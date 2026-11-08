@@ -1,4 +1,4 @@
-# 迷路が「詰まないか」と「どれくらい迷うか」を調べるプログラム
+# 湖が「詰むか」と「どれくらい迷うか」を調べるプログラム
 # solver.py・levels.py と同じフォルダに置いて、python checker.py で実行する
 import random
 from collections import deque
@@ -9,8 +9,8 @@ from solver import DIRECTIONS, make_key, slide, solve, start_state
 
 def all_states(level):
     """スタートからたどり着ける局面を全部集める。
-    戻り値は (スタートの局面, 局面ごとの迷路, 局面ごとの「次の局面のリスト」)。
-    クリアになる動きは、次の局面を "CLEAR" と書いておく"""
+    戻り値は (スタートの局面, 局面ごとの湖, 局面ごとの「次の局面のリスト」)。
+    町に着く動きは、次の局面を "CLEAR" と書いておく"""
     grid, x, y = start_state(level)
     start = make_key(grid, x, y)
     boards = {start: (grid, x, y)}
@@ -36,11 +36,11 @@ def all_states(level):
     return start, boards, nexts
 
 
-def find_stuck(nexts):
-    """もうクリアできない（詰んだ）局面のリストを返す"""
-    ok = set()  # クリアにつながる局面
+def find_ok(nexts):
+    """町につながる局面の集合を返す。これに入らない局面は詰んでいる"""
+    ok = set()
     changed = True
-    while changed:  # 「クリアにつながる局面」が増えなくなるまでくり返す
+    while changed:  # 「町につながる局面」が増えなくなるまでくり返す
         changed = False
         for key, next_keys in nexts.items():
             if key in ok:
@@ -50,23 +50,26 @@ def find_stuck(nexts):
                     ok.add(key)
                     changed = True
                     break
-    return [key for key in nexts if key not in ok]
+    return ok
 
 
-def wander(start, nexts, players=300, limit=2000):
-    """でたらめに動くプレイヤーが、クリアまでに平均何手かかるか"""
+def wander(start, nexts, ok, players=300, limit=3000):
+    """でたらめに動くプレイヤーが、町に着くまでに平均何手かかるか。
+    詰んだらスタートからやり直す（手数はそのまま数え続ける）"""
     total = 0
     for _ in range(players):
         key = start
         moves = 0
         while moves < limit:
             if len(nexts[key]) == 0:  # どこにも動けない
-                moves = limit
-                break
+                key = start
+                continue
             key = random.choice(nexts[key])
             moves += 1
             if key == "CLEAR":
                 break
+            if key not in ok:  # 詰んだらやり直し
+                key = start
         total += moves
     return total / players
 
@@ -86,11 +89,12 @@ for i, level in enumerate(LEVELS):
         print(f"{i + 1} {level['name']}: 解けません！")
         continue
     start, boards, nexts = all_states(level)
-    stuck = find_stuck(nexts)
-    score = wander(start, nexts) / len(answer)
+    ok = find_ok(nexts)
+    stuck = [key for key in nexts if key not in ok]
+    score = wander(start, nexts, ok) / len(answer)
     print(f"{i + 1} {level['name']}: 局面 {len(nexts)}個  詰み {len(stuck)}個  迷い度 {score:.1f}")
     if stuck:
-        # 詰んだ局面の例を1つ見せる（残りのドットが少ないものを選ぶ）
-        key = min(stuck, key=lambda k: k[2].count("."))
-        print("  たとえばこの局面は、もうクリアできません:")
+        # 詰んだ局面の例を1つ見せる（割れた氷が少ないものを選ぶ）
+        key = min(stuck, key=lambda k: k[2].count("~"))
+        print("  たとえばこの局面からは、もう町に行けません:")
         show(*boards[key])

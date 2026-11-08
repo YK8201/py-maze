@@ -4,16 +4,18 @@ TILE = 8
 
 MAP = [
     "#######",
-    "#S    #",
-    "##### #",
-    "#E    #",
-    "#######",
+    "# ##  #",
+    "#     #",
+    "#   # #",
+    "#     #",
+    "#     E",
+    "###S###",
 ]
 
 
 class App:
     def __init__(self):
-        pyxel.init(128, 160, title="SLIDE MAZE")
+        pyxel.init(128, 160, title="ICE LAKE")
         self.grid = [list(row) for row in MAP]
         self.h = len(self.grid)
         self.w = len(self.grid[0])
@@ -25,17 +27,26 @@ class App:
                 if self.grid[y][x] == "S":
                     self.x = x
                     self.y = y
-                    self.grid[y][x] = " "  # S はもう要らないので床にする
+                    self.grid[y][x] = " "  # S はもう要らないので氷にする
+        self.clear = False  # 町に着いたら True
         pyxel.run(self.update, self.draw)
 
-    def is_wall(self, x, y):
+    def is_rock(self, x, y):
+        # 湖の外は岩ということにする
+        if x < 0 or x >= self.w or y < 0 or y >= self.h:
+            return True
         return self.grid[y][x] == "#"
 
     def move(self, dx, dy):
-        # となりが壁でないあいだ、ずっと進む（＝壁まで滑る）
-        while not self.is_wall(self.x + dx, self.y + dy):
+        if self.clear:
+            return
+        # となりが岩でないあいだ、ずっと進む（＝岩まで滑る）
+        while not self.is_rock(self.x + dx, self.y + dy):
             self.x += dx
             self.y += dy
+            if self.grid[self.y][self.x] == "E":
+                self.clear = True  # 町に着いた
+                break
 
     def update(self):
         if pyxel.btnp(pyxel.KEY_UP):
@@ -55,13 +66,19 @@ class App:
                 px = self.ox + x * TILE
                 py = self.oy + y * TILE
                 if tile == "#":
-                    pyxel.rect(px, py, TILE, TILE, 1)
+                    pyxel.rect(px, py, TILE, TILE, 13)
                 elif tile == "E":
-                    pyxel.rectb(px + 1, py + 1, 6, 6, 11)
+                    pyxel.rect(px, py, TILE, TILE, 8)
+                else:
+                    pyxel.rect(px, py, TILE, TILE, 6)
         # プレイヤー（オレンジの四角）
         px = self.ox + self.x * TILE
         py = self.oy + self.y * TILE
         pyxel.rect(px + 1, py + 1, 6, 6, 9)
+
+        if self.clear:
+            pyxel.rect(24, 64, 80, 24, 1)
+            pyxel.text(52, 73, "CLEAR!", 10)
 
 
 App()

@@ -8,13 +8,14 @@ SPEED = 2  # 1フレームに進むドット数（8 を割り切れる数にす�
 
 class App:
     def __init__(self):
-        pyxel.init(128, 160, title="SLIDE MAZE", fps=60)
+        pyxel.init(128, 160, title="ICE LAKE", fps=60)
         # 音を作る: 音の高さ, 音色, 音量, エフェクト, 速さ
         pyxel.sounds[0].set("c2", "t", "4", "f", 10)  # 止まった音
-        pyxel.sounds[1].set("a3", "s", "3", "f", 6)  # ドットを拾った音
+        pyxel.sounds[1].set("c4g3", "n", "3", "f", 4)  # 氷が割れる音
         pyxel.sounds[2].set("c3e3g3c4", "t", "4", "n", 12)  # クリアの音
-        pyxel.sounds[3].set("c3", "n", "3", "f", 8)  # 床が崩れる音
-        self.stage = 0
+        pyxel.sounds[3].set("a2f2c2", "n", "543", "f", 10)  # 水に落ちる音
+        self.splash = 0
+        self.stage = 0  # 今のステージ番号（0 から数える）
         self.load_level()
         pyxel.run(self.update, self.draw)
 
@@ -30,37 +31,25 @@ class App:
                 if self.grid[y][x] == "S":
                     self.x = x
                     self.y = y
-                    self.grid[y][x] = " "  # 立っているマスは拾ったことにする
-                elif self.grid[y][x] == " ":
-                    self.grid[y][x] = "."  # 空白のマスには全部ドットを置く
-        self.moves = 0
+                    self.grid[y][x] = " "
+        self.moves = 0  # 手数
         self.clear = False
-        self.history = []
+        self.history = []  # 1手ごとの記録（UNDO用）
         self.moving = False  # 滑っている最中なら True
         self.dx = 0
-        self.dy = 1  # 最初は下向き（目の向きにも使う）
+        self.dy = -1  # 最初は上向き（目の向きにも使う）
         self.offset = 0  # 今のマスから何ドット進んだか
 
-    def is_wall(self, x, y):
+    def is_rock(self, x, y):
+        if x < 0 or x >= self.w or y < 0 or y >= self.h:
+            return True
         return self.grid[y][x] == "#"
-
-    def tile_at(self, x, y):
-        # 迷路の外は壁ということにする
-        if 0 <= x < self.w and 0 <= y < self.h:
-            return self.grid[y][x]
-        return "#"
-
-    def count_dots(self):
-        n = 0
-        for row in self.grid:
-            n += row.count(".")
-        return n
 
     def start_move(self, dx, dy):
         # 滑り始めるだけ。実際に進むのは update_move
         if self.clear or self.moving:
             return
-        if self.is_wall(self.x + dx, self.y + dy):
+        if self.is_rock(self.x + dx, self.y + dy):
             return
         grid_copy = [row[:] for row in self.grid]
         self.history.append((grid_copy, self.x, self.y, self.moves))
@@ -78,30 +67,32 @@ class App:
         # となりのマスに着いた
         self.offset = 0
         if self.grid[self.y][self.x] == "x":
-            self.grid[self.y][self.x] = "#"  # 離れた崩れる床は壁になる
-            pyxel.play(2, 3)
+            self.grid[self.y][self.x] = "~"  # 離れたもろい氷は割れて水になる
+            pyxel.play(1, 1)
         self.x += self.dx
         self.y += self.dy
         tile = self.grid[self.y][self.x]
-        if tile == ".":
-            self.grid[self.y][self.x] = " "
-            pyxel.play(1, 1)
-        if tile == "E" and self.count_dots() == 0:
+        if tile == "~":
+            self.splash_x = self.x  # 水しぶきを出す場所
+            self.splash_y = self.y
+            self.moving = False
+            self.undo()  # 落ちたら、この手をなかったことにする
+            self.splash = 30
+            pyxel.play(0, 3)
+            return
+        if tile == "E":
             self.clear = True
             self.moving = False
             pyxel.play(0, 2)
             return
-        if tile == "o":
-            self.moving = False  # ぬかるみでは止まる
-        elif self.is_wall(self.x + self.dx, self.y + self.dy):
-            self.moving = False  # 次が壁なら止まる
-        if not self.moving:
+        if self.is_rock(self.x + self.dx, self.y + self.dy):
+            self.moving = False  # 次が岩なら止まる
             pyxel.play(0, 0)
 
     def undo(self):
         if self.moving or len(self.history) == 0:
             return
-        grid, x, y, moves = self.history.pop()
+        grid, x, y, moves = self.history.pop()  # 最後の記録を取り出す
         self.grid = grid
         self.x = x
         self.y = y
@@ -114,6 +105,8 @@ class App:
             self.load_level()
 
     def update(self):
+        if self.splash > 0:
+            self.splash -= 1
         if self.moving:
             self.update_move()
             return  # 滑っているあいだはキーを受けつけない
@@ -132,64 +125,79 @@ class App:
         if pyxel.btnp(pyxel.KEY_Z):
             self.undo()
 
-    def draw_wall(self, x, y, px, py):
-        # まわりが全部壁なら何も描かない（迷路の外側を暗くする）
-        is_open = False
-        for ny in range(y - 1, y + 2):
-            for nx in range(x - 1, x + 2):
-                if self.tile_at(nx, ny) != "#":
-                    is_open = True
-        if not is_open:
-            return
-        pyxel.rect(px, py, TILE, TILE, 1)
-        # 通路に面した辺にふちをつける
-        if self.tile_at(x, y - 1) != "#":
-            pyxel.line(px, py, px + 7, py, 12)
-        if self.tile_at(x, y + 1) != "#":
-            pyxel.line(px, py + 7, px + 7, py + 7, 5)
-        if self.tile_at(x - 1, y) != "#":
-            pyxel.line(px, py, px, py + 7, 5)
-        if self.tile_at(x + 1, y) != "#":
-            pyxel.line(px + 7, py, px + 7, py + 7, 5)
+    def on_shore(self, x, y):
+        # 湖のいちばん外側のマスなら True
+        return x == 0 or y == 0 or x == self.w - 1 or y == self.h - 1
+
+    def draw_tile(self, x, y, px, py):
+        tile = self.grid[y][x]
+        if tile == "E":
+            # 町: 雪の上に、赤い屋根の家
+            pyxel.rect(px, py, TILE, TILE, 7)
+            pyxel.tri(px, py + 4, px + 7, py + 4, px + 3, py, 8)
+            pyxel.rect(px + 1, py + 4, 6, 4, 15)
+            pyxel.rect(px + 3, py + 5, 2, 3, 4)
+        elif self.on_shore(x, y):
+            # 岸: 白い雪
+            pyxel.rect(px, py, TILE, TILE, 7)
+        elif tile == "#":
+            # 岩: 氷の上の灰色の石。右下に影をつける
+            pyxel.rect(px, py, TILE, TILE, 6)
+            pyxel.rect(px + 1, py + 1, 6, 6, 13)
+            pyxel.line(px + 2, py + 7, px + 6, py + 7, 5)
+            pyxel.line(px + 7, py + 2, px + 7, py + 6, 5)
+        elif tile == "~":
+            # 水: 波の線を少しずつ動かす（frame_count はフレームの通し番号）
+            pyxel.rect(px, py, TILE, TILE, 5)
+            wave = (pyxel.frame_count // 12 + x + y) % 4
+            pyxel.line(px + 1 + wave, py + 3, px + 3 + wave, py + 3, 12)
+        elif tile == "x":
+            # もろい氷: ひびを入れる
+            pyxel.rect(px, py, TILE, TILE, 12)
+            pyxel.line(px + 1, py + 2, px + 3, py + 4, 7)
+            pyxel.line(px + 3, py + 4, px + 6, py + 3, 7)
+            pyxel.line(px + 3, py + 4, px + 4, py + 6, 7)
+        else:
+            # 氷: マスごとに位置を変えて、白いきらめきを1つ
+            pyxel.rect(px, py, TILE, TILE, 6)
+            k = (x * 7 + y * 11) % 5
+            pyxel.pset(px + 1 + k, py + 1 + (k * 3) % 6, 7)
+
+    def draw_player(self, px, py):
+        # オレンジの体と、黒いシルクハット
+        pyxel.rect(px + 1, py + 3, 6, 5, 9)
+        pyxel.rect(px + 2, py, 4, 2, 0)
+        pyxel.line(px + 1, py + 2, px + 6, py + 2, 0)
+        # 目は進む向きを見る
+        pyxel.pset(px + 3 + self.dx, py + 4 + self.dy, 0)
+        pyxel.pset(px + 4 + self.dx, py + 4 + self.dy, 0)
 
     def draw(self):
         pyxel.cls(0)
+        # 湖を1マスずつ描く
         for y in range(self.h):
             for x in range(self.w):
-                tile = self.grid[y][x]
                 px = self.ox + x * TILE
                 py = self.oy + y * TILE
-                if tile == "#":
-                    self.draw_wall(x, y, px, py)
-                elif tile == ".":
-                    pyxel.rect(px + 3, py + 3, 2, 2, 10)
-                elif tile == "E":
-                    if self.count_dots() == 0:
-                        # 開いたゴールは点滅させる（frame_count はフレームの通し番号）
-                        color = 11 if pyxel.frame_count % 30 < 15 else 3
-                        pyxel.rect(px + 1, py + 1, 6, 6, color)
-                    else:
-                        pyxel.rectb(px + 1, py + 1, 6, 6, 5)
-                elif tile == "o":
-                    pyxel.rect(px + 1, py + 1, 6, 6, 4)  # ぬかるみ
-                elif tile == "x":
-                    pyxel.rectb(px + 1, py + 1, 6, 6, 13)  # 崩れる床
-                    pyxel.line(px + 2, py + 3, px + 5, py + 5, 13)
+                self.draw_tile(x, y, px, py)
         # マスの位置 ＋ 進んだぶん だけずらして描く
         px = self.ox + self.x * TILE + self.dx * self.offset
         py = self.oy + self.y * TILE + self.dy * self.offset
-        pyxel.rect(px + 1, py + 1, 6, 6, 9)
-        pyxel.rectb(px + 1, py + 1, 6, 6, 10)
-        # 目は進む向きを見る
-        pyxel.pset(px + 3 + self.dx, py + 3 + self.dy, 0)
-        pyxel.pset(px + 4 + self.dx, py + 3 + self.dy, 0)
+        self.draw_player(px, py)
+        # 水しぶきの輪（時間がたつほど大きくなる）
+        if self.splash > 0:
+            r = 2 + (30 - self.splash) // 4
+            sx = self.ox + self.splash_x * TILE + 4
+            sy = self.oy + self.splash_y * TILE + 4
+            pyxel.circb(sx, sy, r, 7)
 
         # 上の文字と、クリアしたときの表示
         level = LEVELS[self.stage]
         pyxel.text(4, 2, f"STAGE {self.stage + 1} {level['name']}", 7)
         pyxel.text(4, 9, f"MOVES {self.moves}", 7)
         pyxel.text(52, 9, f"PAR {level['par']}", 10)
-        pyxel.text(92, 9, f"DOTS {self.count_dots()}", 7)
+        if self.splash > 0:
+            pyxel.text(92, 9, "SPLASH!", 12)
         pyxel.text(4, 148, "ARROWS:MOVE Z:UNDO R:RESET", 13)
         if self.clear:
             pyxel.rect(16, 60, 96, 36, 1)
